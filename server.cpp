@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <WinSock2.h>
+#include <iostream>
 #pragma comment(lib,"Ws2_32.lib ")
 
 int main()
@@ -25,7 +26,7 @@ int main()
 
 	/* 创建套接服务字 */
 	SOCKET serverSocket;
-	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+	serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (serverSocket == INVALID_SOCKET)
 	{
 		printf("Error:CreatServerSocket failed!\n");
@@ -53,17 +54,46 @@ int main()
 	int len = sizeof(cliAddr);
 	SOCKET clientSocket;
 	clientSocket = accept(serverSocket, (sockaddr*)&cliAddr, &len);
-	printf("Connected：%s \r\n", inet_ntoa(cliAddr.sin_addr));
+	if (clientSocket == INVALID_SOCKET)
+	{
+		printf("ERROR:accept failed！\n");
+	}
+	printf("Connected：%s %dsuccess！！！\r\n", inet_ntoa(cliAddr.sin_addr));
 
-	/* 接受消息 */
-	char recvBuf[100] = { 0 };
-	recv(clientSocket, recvBuf, sizeof(recvBuf), 0);
-
-	/* 发送消息 */
-	send(clientSocket, recvBuf, 100, NULL);
-
+	while (true)
+	{
+		char recvBuf[100] = { 0 };
+		int cnt = recv(clientSocket, recvBuf, sizeof(recvBuf), 0);
+		if(cnt <= 0)
+		{
+			if ((cnt < 0) && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
+			{
+				continue;//继续接收数据
+			}
+			std::cout << "客户端已经退出，任务结束" << std::endl;
+			break;//跳出接收循环
+		}
+		else
+		{
+			//正常处理数据
+			if (0 == strcmp(recvBuf, "XXX"))
+			{
+			}
+			else if (0 == strcmp(recvBuf, "exit"))
+			{
+				std::cout << recvBuf << std::endl;
+				std::cout << "客户端已退出" << std::endl;
+				break;
+			}
+			else
+			{
+				std::cout << recvBuf << std::endl;
+				send(clientSocket, recvBuf, sizeof(recvBuf) + 1, 0);//发送msgbuf中的内容。如果长度确定则不应该每次都重新计算
+				recv(clientSocket, recvBuf, 100, 0);
+			}
+		}
+	}
 	closesocket(clientSocket);
 	WSACleanup();
-	system("pause");
 	return 1;
 }
