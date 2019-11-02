@@ -4,6 +4,36 @@
 #include <iostream>
 #pragma comment(lib,"Ws2_32.lib ")
 
+enum CMD
+{
+	CMD_LOGIN,
+	CMD_LOGOUT,
+	CMD_ERROR
+};
+//消息头
+struct Dataheader {
+	CMD cmd;
+	int dataLength;
+};
+
+struct Login {
+	char userName[32];
+	char passWord[32];
+};
+
+struct LoginResult
+{
+	int result;
+};
+
+struct Logout{
+	char userName[32];
+};
+
+struct LogoutResult
+{
+	int result;
+};
 int main()
 {
 	WSADATA wsaData;
@@ -17,8 +47,7 @@ int main()
 	}
 	/* 设置IP地址 */
 	memset(&servAddr, 0, sizeof(servAddr));
-	servAddr.sin_addr.s_addr = htonl(INADDR_ANY); //绑定本机IP
-	//servAddr.sin_addr.s_addr = inet_addr("192.168.1.53");
+	servAddr.sin_addr.s_addr = htonl(INADDR_ANY); //接受任意IP
 
 	/* 设置端口 */
 	servAddr.sin_family = AF_INET;
@@ -59,11 +88,10 @@ int main()
 		printf("ERROR:accept failed！\n");
 	}
 	printf("Connected：Socket<%d> IP:%s Connected success！！！\r\n", (int)clientSocket,inet_ntoa(cliAddr.sin_addr));
-
 	while (true)
 	{
-		char recvBuf[100] = { 0 };
-		int cnt = recv(clientSocket, recvBuf, sizeof(recvBuf), 0);
+		Dataheader header = {};
+		int cnt = recv(clientSocket,(char *)&header, sizeof(header), 0);
 		if(cnt <= 0)
 		{
 			if ((cnt < 0) && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
@@ -75,21 +103,39 @@ int main()
 		}
 		else
 		{
+			printf("收到命令：%d 数据长度：%d\n", header.cmd, header.dataLength);
 			//正常处理数据
-			if (0 == strcmp(recvBuf, "XXX"))
+			switch (header.cmd)
 			{
-			}
-			else if (0 == strcmp(recvBuf, "exit"))
+			case CMD_LOGIN:
 			{
-				std::cout << recvBuf << std::endl;
-				std::cout << "客户端已退出" << std::endl;
+				Login login{};
+				recv(clientSocket, (char*)&login, sizeof(Login), 0);
+				//判断用户密码是否正确的过程
+				printf("登录用户名：%s 登录用户密码：%s\n", login.userName, login.passWord);
+				LoginResult ret = { 1 };
+				send(clientSocket, (char*)&header, sizeof(header), 0);
+				send(clientSocket, (char*)&ret, sizeof(ret), 0);
 				break;
 			}
-			else
+			case CMD_LOGOUT:
 			{
-				std::cout << recvBuf << std::endl;
-				send(clientSocket, recvBuf, sizeof(recvBuf) + 1, 0);//发送msgbuf中的内容。如果长度确定则不应该每次都重新计算
-				recv(clientSocket, recvBuf, 100, 0);
+				Logout logout = {};
+				recv(clientSocket, (char*)&logout, sizeof(Login), 0);
+				//判断用户密码是否正确的过程
+				printf("登出用户名：%s \n", logout.userName);
+				LogoutResult ret = { 1 };
+				send(clientSocket, (char*)&header, sizeof(header), 0);
+				send(clientSocket, (char*)&ret, sizeof(ret), 0);
+				break;
+			}
+			default:
+			{
+				header.cmd = CMD_ERROR;
+				header.dataLength = 0;
+				send(clientSocket, (char*)&header, sizeof(header), 0);
+				break;
+			}
 			}
 		}
 	}
