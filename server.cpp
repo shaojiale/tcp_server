@@ -58,7 +58,7 @@ int main()
 	{
 		printf("ERROR:accept failed£¡\n");
 	}
-	printf("Connected£º%s %dsuccess£¡£¡£¡\r\n", inet_ntoa(cliAddr.sin_addr));
+	printf("Connected£ºSocket<%d> IP:%s Connected success£¡£¡£¡\r\n", (int)clientSocket,inet_ntoa(cliAddr.sin_addr));
 
 	while (true)
 	{
