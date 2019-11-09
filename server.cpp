@@ -2,9 +2,9 @@
 
 int main()
 {  
-	tcpserver server;
+	TcpServer server;
 	server.InitSocket();
-	server.Bind(nullptr, 45689);
+	server.Bind(nullptr, 1245);
 	server.Listen(20);
 	while (server.isRun())
 	{
