@@ -144,6 +144,7 @@
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CELLTimestamp.hpp" />
     <ClInclude Include="MessageHeader.hpp" />
     <ClInclude Include="tcpserver.hpp" />
   </ItemGroup>

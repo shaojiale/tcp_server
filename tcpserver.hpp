@@ -1,7 +1,7 @@
 #ifndef _TCPSERVER_HPP
 #define _TCPSERVER_HPP
 #ifdef _WIN32
-#define FD_SETSIZE 1024
+#define FD_SETSIZE 10024
 #define WIN32_LEAN_AND_MEAN
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <vector>
 #include "MessageHeader.hpp"
-
+#include "CELLTimestamp.hpp"
 //缓冲区最小单元大小
 #ifndef RECV_BUFF_SIZE
 #define RECV_BUFF_SIZE 10240
@@ -60,11 +60,13 @@ class TcpServer
 private:
 	SOCKET _sock;
 	std::vector<TcpClient*> _clients;
-
+	CELLTimestamp _timer;
+	int _recvCount;
 public:
 	TcpServer()
 	{
 		_sock = INVALID_SOCKET;
+		_recvCount = 0;
 	}
 	virtual ~TcpServer()
 	{
@@ -207,6 +209,14 @@ public:
 	//响应网络消息
 	virtual void OnNetMsg(SOCKET csock, Dataheader *header)
 	{
+		_recvCount++;
+		auto _timenow = _timer.getElapsedSec();
+		if (_timenow >= 1.0)
+		{
+			printf("时间: %lf 收到数据包数量: %d\n", _timenow,_recvCount);
+			_timer.update();
+			_recvCount = 0;
+		}
 		//正常处理数据
 		switch (header->cmd)
 		{
@@ -278,7 +288,7 @@ public:
 			//描述符(socket是一个整数)
 			//windows中可以写0
 			//第五个参数超时时间：NULL为阻塞模式，时间为最大时间
-			timeval timeout = {0, 5};
+			timeval timeout = {0, 0};
 			int ret = select(maxSock + 1, &fdRead, &fdWrite, &fdExp, &timeout);
 			if (ret < 0)
 			{
@@ -291,8 +301,9 @@ public:
 				FD_CLR(_sock, &fdRead);
 				//等待接受客户端连接
 				Accept();
+				return true;
 			}
-			for (int n = (int)fdRead.fd_count - 1; n >= 0; n--)
+			for (int n = (int)(_clients.size() - 1); n >= 0; n--)
 			{
 				if (FD_ISSET(_clients[n]->sockfd(),&fdRead))
 				{
