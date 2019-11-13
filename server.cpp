@@ -6,7 +6,7 @@ int main()
 	server.InitSocket();
 	server.Bind(nullptr, 1245);
 	server.Listen(20);
-	while (server.isRun())
+	while (true)
 	{
 		server.OnRun();
 	}

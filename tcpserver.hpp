@@ -165,8 +165,8 @@ public:
 			printf("ERROR:accept<Socket:%d> failed！\n", (int)csock);
 		}
 		_clients.push_back(new TcpClient(csock));
-		printf("Connected：<%d>Socket<%d> IP:%s Port：%d Connected success！！！\r\n",
-			   (int)_clients.size(),(int)csock, inet_ntoa(cliAddr.sin_addr), ntohs(cliAddr.sin_port));
+		//printf("Connected：<%d>Socket<%d> IP:%s Port：%d Connected success！！！\r\n",
+		//	   (int)_clients.size(),(int)csock, inet_ntoa(cliAddr.sin_addr), ntohs(cliAddr.sin_port));
 		return csock;
 	}
 	//接受数据 处理粘包拆包
@@ -226,9 +226,9 @@ public:
 			//Login *login = (Login *)header;
 			//判断用户密码是否正确的过程
 			//printf("登录用户名：%s 登录用户密码：%s\n", login->userName, login->passWord);
-			//LoginResult ret;
-			//ret.result = 1;
-			//SendData(csock, &ret);
+			LoginResult ret;
+			ret.result = 1;
+			SendData(csock, &ret);
 			break;
 		}
 		case CMD_LOGOUT:
@@ -272,11 +272,8 @@ public:
 			FD_SET(_sock, &fdWrite);
 			FD_SET(_sock, &fdExp);
 			SOCKET maxSock = _sock;
-			//LoginResult ret1;
-			//ret1.result = 1;
 			for (int n = (int)_clients.size() - 1; n >= 0; n--)
 			{
-				//SendData(_clients[n]->sockfd(), &ret1);
 				FD_SET(_clients[n]->sockfd(), &fdRead);
 				if (maxSock  < _clients[n]->sockfd())
 				{
@@ -288,7 +285,7 @@ public:
 			//描述符(socket是一个整数)
 			//windows中可以写0
 			//第五个参数超时时间：NULL为阻塞模式，时间为最大时间
-			timeval timeout = {0, 0};
+			timeval timeout = {0, 10};
 			int ret = select(maxSock + 1, &fdRead, &fdWrite, &fdExp, &timeout);
 			if (ret < 0)
 			{
@@ -310,7 +307,6 @@ public:
 					if (-1 == RecvData(_clients[n]))
 					{
 						auto iter = _clients.begin() + n;
-						//auto iter = find(_clients.begin(), _clients.end(), fdRead.fd_array[n]);
 						if (iter != _clients.end())
 						{
 							delete _clients[n];
